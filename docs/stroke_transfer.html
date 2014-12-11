@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<head>
+<style>
+#container
+{
+	width:6000px;
+}
+.viewerbox
+{
+	width: 150px;
+	height: 350px;
+}
+.group
+{
+	float: left;
+}
+</style>
+</head>
+<body>
+<object id='svg_file' data='test/input2.svg' type='image/svg+xml'></object>
+<div id='container'></div>
+<script data-main='./' src='require.js'></script>
+<script>
+var current, current_group,
+	structural_scheme=true;
+requirejs(['raphael','drawer','shape','stroke','curve','structure','hungarian','util'], function(){
+	(function main()
+	{
+		var svg = $('svg_file').contentDocument,
+			layer = svg.getElementById('layer1');
+		if( layer)
+		{
+			var groups = layer.getElementsByTagName('g');
+			for( var i=0; i<groups.length; i++)
+			{
+				process_group(groups[i]);
+			}
+			$('svg_file').style.display='none';
+		}
+		else
+			setTimeout(main,10);
+	}());
+});
+function process_group(group)
+{
+	var column = document.createElement('div');
+	column.className = 'group';
+	$('container').appendChild(column);
+	current_group = column;
+	
+	var drawer = viewer_box();
+	var PATHS = group.getElementsByTagName('path'),
+		paths = fn(sample_path,PATHS,120,true);
+	resize_paths(paths);
+	//paths = fn(agdist_lower_sample,paths,null,null,0.1,false);
+	
+	var path=[],stroke=[];
+	for( var i=0; i<PATHS.length; i++)
+		if( is_closed_path(PATHS[i]))
+			stroke.push(paths[i]);
+		else
+			path.push(paths[i]);
+	if( !(path.length==1 && stroke.length==1))
+		return;
+	transfer_stroke(drawer,stroke[0],path[0]);
+}
+function transfer_stroke(drawer,stroke,path)
+{
+	var re = {
+			centerx:0.5, centery:0.5,
+			width:1, height:1
+		},
+		size = size = Math.max(re.width,re.height)+0.1, //dynamic fit
+		graph = {
+			xrange:size, yrange:size,
+			xoffset:size/2-(re?re.centerx:0), yoffset:size/2-(re?re.centery:0),
+			width:100, height:100,
+			num:1
+		},
+		st = transform(stroke,false,true),
+		dst = differentiate(st,'q','l');
+	re.data = stroke;
+	var stroke_path = principal_axis(drawer,[re],[st],[dst]);
+	//stroke = agdist_lower_sample(stroke,null,null,0.2,false);
+	re.data = stroke;
+	//stroke_path = agdist_lower_sample(stroke_path,null,null,0.1,false);
+	//path = agdist_lower_sample(path,null,null,0.1,false);
+	//subplotshape(drawer,re,path,{style:'point:2',closepath:false});
+	var corr_path = path_correspondence(drawer,re,stroke_path,path);
+	
+	var ske = skeletonize(drawer,re,stroke_path);
+	draw_skeleton(drawer,stroke,stroke_path,ske,graph);
+	subplotshape(drawer,re,stroke,{num:1});
+	subplotshape(drawer,re,stroke_path,{style:'line:0',closepath:false,num:1});
+	
+	var deform = skeletal_deform(drawer,re,stroke_path,ske,corr_path);
+	draw_skeleton(drawer,deform,corr_path,ske,graph);
+	subplotshape(drawer,re,deform,{num:1});
+	subplotshape(drawer,re,corr_path,{style:'line:0',closepath:false,num:1});
+}
+</script>

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<head>
+<style>
+#container2
+{
+	width:100%;
+}
+.box
+{
+	width: 600px;
+	height: 600px;
+	float: left;
+	margin: 5px;
+}
+</style>
+</head>
+<body>
+<div id='container2'></div>
+<script data-main='./' src='require.js'></script>
+<script>
+var current_group,
+	demo_tweak = false,
+	small_demo = true;
+requirejs(['library/library','raphael','drawer','dragger','shape','stroke','curve','util'], function(library){
+	for( var i=0; i<library.length; i++)
+		for( var j=0; j<library[i].length; j++)
+		{
+			if( small_demo &&
+			  !((i==0 && j==0) ||
+				(i==0 && j==2) ||
+				(i==3 && j==0) ||
+				(i==14&& j==1) ))
+				continue;
+			var stroke = library[i][j].stroke,
+				path = library[i][j].path;
+			if( demo_tweak)
+			{
+				stroke = agdist_lower_sample(stroke,null,null,1,false,10);
+				path = agdist_lower_sample(path,null,null,1.5,true,1);
+				path[1].x += 0.06;
+			}
+			else
+			{
+				stroke = agdist_lower_sample(stroke,null,null,0.2,false,10);
+				path = agdist_lower_sample(path,null,null,1,true,10);
+			}
+			var re=
+			{
+				data: stroke,
+				centerx:0.5, centery:0.5,
+				width:1, height:1
+			};
+			var zoom = -0.3;
+			if( demo_tweak) zoom = -1;
+			stroke_deformation({
+				shape: re,
+				axis: path,
+				skeleton: skeletonize(null,re,path)
+			},zoom);
+		}
+	
+	function stroke_deformation(str,zoom)
+	{
+		zoom = zoom || 0.01;
+		var re = str.shape;
+		var box = document.createElement('div');
+		box.className = 'box';
+		$('container2').appendChild(box);
+		var drawer = new Drawer(box);
+		drawer.stroke_width = 2;
+		var graph = get_subplot_graph_zoom(drawer,re,zoom);
+		var naxis = clone_array(str.axis);
+		if( demo_tweak)
+		{
+			naxis[0].x += 0.2;
+			naxis[0].y += 0.1;
+			naxis[2].x -= 0.1;
+			naxis[3].x += 0.15;
+			naxis[3].y += 0.05;
+		}
+		var dragger = new Dragger(box,naxis,redraw,get_screen_transform_fun(graph));
+		dragger.sel_box = 20;
+		function redraw()
+		{
+			drawer.clear();
+			var deform = skeletal_deform(drawer,re,str.axis,str.skeleton,naxis);
+			subplotshape(drawer,re,deform,{zoom:zoom});
+			draw_skeleton(drawer,deform,naxis,str.skeleton,graph);
+			subplotshape(drawer,re,naxis,{closepath:false,style:'line:0',zoom:zoom});
+		}
+	}
+});
+</script>
+</body>

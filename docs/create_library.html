@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<head>
+<style>
+#container
+{
+	/*width:6000px;*/
+	width:100%;
+}
+.viewerbox
+{
+	width: 110px;
+	height: 110px;
+}
+.viewerboxbig
+{
+	width: 410px;
+	height: 410px;
+}
+.group
+{
+	float: left;
+}
+</style>
+</head>
+<body>
+<button id='export_btn'>export()</button><input id='status'/>
+<!-- test/write2.svg test2/ink samples.svg test2/basic ink.svg -->
+<object id='svg_file' data='test/write2.svg' type='image/svg+xml'></object>
+<div id='container'></div>
+<script data-main='./' src='require.js'></script>
+<script>
+var current_group,
+	mode = 'chin_cali', // 'chin_cali' 'cartoon'
+	structural_scheme = mode==='chin_cali'?true:undefined,
+	cartoon_scheme = mode==='cartoon'?true:undefined,
+	principal_axis_no_verify=true,
+	library=[],
+	unit_square,
+	lib_index = 0;
+requirejs(['raphael','drawer','shape','stroke','curve','structure','util'], function(){
+	(function main()
+	{
+		var svg = $('svg_file').contentDocument,
+			layer = svg.getElementById('layer1');
+		if( layer)
+		{
+			var start_time = new Date();
+			var square = svg.getElementById('unit_square');
+			if( square)
+			unit_square = {
+				w: parseInt(square.getAttribute('width')),
+				h: parseInt(square.getAttribute('height'))
+			};
+			var groups = layer.getElementsByTagName('g');
+			for( var i=0; i<groups.length; i++)
+			{
+				library[i] = process_group(groups[i]);
+			}
+			$('svg_file').style.display='none';
+			var spent_time = new Date().getTime() - start_time.getTime();
+			$('status').value = 'spent '+(spent_time/1000)+'s';
+			$('export_btn').onclick=function()
+			{
+				export_file('define('+JSON.stringify(library)+');');
+			}
+			console.log(library);
+		}
+		else
+			setTimeout(main,10);
+	}());
+});
+function process_group(group)
+{
+	var draw_only = 13;
+	var draw_number = false;
+	var column = document.createElement('div');
+	column.className = 'group';
+	$('container').appendChild(column);
+	current_group = column;
+	
+	if( draw_only)
+	{
+		var drawer1,drawer2,drawer3;
+		switch (draw_only) { case 1: case 12: case 13: drawer1 = viewer_box(mode==='cartoon'?'viewerboxbig':'');}
+		switch (draw_only) { case 2: case 12: case 23: drawer2 = viewer_box(mode==='cartoon'?'viewerboxbig':'');}
+		switch (draw_only) { case 3: case 13: case 23: drawer3 = viewer_box(mode==='cartoon'?'viewerboxbig':'');}
+	}
+	else
+		var drawer1 = viewer_box(mode==='cartoon'?'viewerboxbig':''),
+			drawer2 = viewer_box(mode==='cartoon'?'viewerboxbig':''),
+			drawer3 = viewer_box(mode==='cartoon'?'viewerboxbig':'');
+	var density = mode==='cartoon'?250:100;
+		strokes = group.getElementsByTagName('path'),
+		reverses = fn(function(e){return e.getAttribute('reverse')},strokes),
+		details = fn(function(e){return parseFloat(e.getAttribute('detail'))},strokes);
+	strokes = fn(sample_path,strokes,density,true);
+	if( unit_square)
+		var bound = resize_paths(strokes,fit_bound(strokes,unit_square));
+	else
+		var bound = resize_paths(strokes);
+	strokes = fn(agdist_lower_sample,strokes,null,null,0.04,false);
+	
+	var st = fn(transform,strokes,false,true),
+		dst = fn(differentiate,st,'q','l'),
+		paths = [],
+		ske = [],
+		comp = [],
+		info = [],
+		liba = [];
+	for( var i=0; i<strokes.length; i++)
+	{
+		//compute the principal axis
+		var re = bound;
+		re.data = strokes[i];
+		var thickness = mode==='cartoon'?0.3:1;
+		paths[i] = principal_axis(drawer1,[re],[st[i]],[dst[i]],thickness);
+		if( !paths[i])
+		{
+			if(drawer1) subplotshape(drawer1,bound,strokes[i],{style:'line:1'});
+			continue;
+		}
+		if(drawer1)
+		{
+			var drawn_stroke = subplotshape(drawer1,bound,strokes[i],{style:'line:4',title:title('stroke and principal axis')});
+			if( draw_only===1)
+				drawn_stroke.attr({fill:'#222',stroke:'none'});
+			if( draw_number)
+				subplotshape(drawer1,bound,[V.add({x:0.01,y:0},paths[i][Math.round(paths[i].length/2)])],{label:[lib_index++]});
+			subplotshape(drawer1,bound,paths[i],{style:'line:0',closepath:false});
+		}
+		//if (strokes[i].length/paths[i].length < 8)
+		//paths[i] = agdist_lower_sample(paths[i],null,null,0.2,true,15);
+		//skeletal representation
+		ske[i] = skeletonize(drawer2,re,paths[i]);
+		if(drawer2)
+			var size = Math.max(re.width,re.height)+0.1, //dynamic fit
+				graph =
+			{
+				xrange:size, yrange:size,
+				xoffset:size/2-(re?re.centerx:0), yoffset:size/2-(re?re.centery:0),
+				width:drawer2.width-10, height:drawer2.height-10,
+				num:0
+			};
+		//prepare component
+		if( mode==='cartoon')
+			comp[i] = prepare_component(paths[i],details[i]||2.5,2);
+		else
+			comp[i] = prepare_component(paths[i],details[i]);
+		
+		chinese_stroke_sense(paths[i],ske[i],comp[i]);
+		if( reverses[i])
+			reverse_component_sense(paths[i],ske[i],comp[i]);
+		
+		//render
+		if(drawer2) draw_skeleton(drawer2,strokes[i],paths[i],ske[i],graph);
+		if(drawer2) subplotshape(drawer2,bound,strokes[i],{style:'line:0',title:title('stroke`s skeletal representation')});
+		if(drawer2) subplotshape(drawer2,bound,paths[i],{style:'line:0',closepath:false});
+		if(drawer3) subplotshape(drawer3,bound,comp[i],{style:'line:0',closepath:false,title:title('component path')});
+	}
+	
+	//component analysis
+	for( var i=0; i<comp.length; i++)
+	{
+		info[i] = analyse_component(drawer3,bound,comp,comp[i]);
+	}
+	for( var i=0; i<comp.length; i++)
+	{
+		if( info[i].is_dot)
+			if( mode==='cartoon')
+				info[i] = analyse_dot_component(drawer3,bound,info,info[i],0.1,0.05);
+			else
+				info[i] = analyse_dot_component(drawer3,bound,info,info[i]);
+	}
+	
+	//library construction
+	for( var i=0; i<strokes.length; i++)
+	{
+		liba[i]=
+		{
+			stroke:strokes[i], //stroke outline
+			path:paths[i], //principal axis
+			//ske:ske[i], //skeletal representation
+			comp:info[i] //component path and its info
+		};
+	}
+	
+	return liba;
+	
+	function title(text)
+	{
+		if( draw_only/5<1) return '';
+		if( i===0) return text;
+		else return '';
+	}
+}
+function fit_bound(strokes,size)
+{
+	var B = get_paths_bound(strokes),
+		S = size;
+	var cx = (B.xmax+B.xmin)/2,
+		cy = (B.ymax+B.ymin)/2;
+	var BB = {
+		xmin:cx-S.w/2,
+		xmax:cx+S.w/2,
+		ymin:cy-S.h/2,
+		ymax:cy+S.h/2,
+		width:S.w,
+		height:S.h
+	}
+	return BB;
+}
+</script>

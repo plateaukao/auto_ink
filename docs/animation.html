@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<head>
+<style>
+#container
+{
+	width:100%;
+}
+.box
+{
+	width: 800px;
+	height: 800px;
+	float: left;
+	margin: 5px;
+}
+</style>
+</head>
+<body>
+<input type='text' id='fps' style='width:50px; font-size:25px'>
+<object id='svg_file' data='test2/trace1.svg' type='image/svg+xml'></object>
+<div id='container'></div>
+<script data-main='./' src='require.js'></script>
+<script>
+var current_group,
+	mode = 'cartoon',
+	cartoon_scheme = true,
+	stroke_library = [],
+	render='stroke'; //'curve','stroke'
+
+requirejs(['library/library1','raphael','drawer_canvas','matching','structure','shape','stroke','curve','hungarian','util'], function(library){
+	
+	var param = location_parameters();
+	if( param.curve)
+		render = 'curve';
+	if( param.stroke)
+		render = 'stroke';
+	
+	//prepare library
+	for( var i=0; i<library.length; i++)
+	for( var j=0; j<library[i].length; j++)
+	{
+		stroke_library.push(library[i][j]);
+		library[i][j].group = i;
+	}
+	
+	(function main()
+	{
+		var svg = $('svg_file').contentDocument,
+			layer = svg.getElementById('layer1');
+		if( layer)
+		{
+			var groups = layer.getElementsByTagName('g');
+			var square = svg.getElementById('unit_square');
+			group_interpolation(sample_groups(groups,square));
+			$('svg_file').style.display='none';
+		}
+		else
+			setTimeout(main,10);
+	}());
+});
+
+function sample_groups(groups,square)
+{
+	var matches = [],
+		details = [],
+		smooths = [],
+		steps = [],
+		types = [];
+	if( !groups.length) return;
+	var unit_square = {
+		w: parseInt(square.getAttribute('width')),
+		h: parseInt(square.getAttribute('height'))
+	};
+	var G = []
+	for( var g=0; g<groups.length; g++)
+	{
+		G[g] = [];
+		for( var i=0; i<groups[g].children.length; i++)
+		{
+			if( g===0)
+			{
+				var E = groups[g].children[i];
+				matches[i] = parseInt(E.getAttribute('match'));
+				details[i] = parseFloat(E.getAttribute('detail'));
+				smooths[i] = parseFloat(E.getAttribute('smooth'));
+				types[i] = E.getAttribute('type');
+			}
+			G[g][i] = sample_path(groups[g].children[i],40,true);
+		}
+		steps[g] = parseFloat(groups[g].getAttribute('steps'));
+	}
+	var bound = fit_bound(G[0],unit_square);
+	for( var i=0; i<G.length; i++)
+	{
+		resize_paths(G[i],bound);
+	}
+	return {
+		groups:G,
+		matches:matches,
+		details:details,
+		smooths:smooths,
+		steps:steps,
+		types:types
+	}
+	
+	function fit_bound(strokes,S)
+	{
+		var B = get_paths_bound(strokes);
+		var cx = (B.xmax+B.xmin)/2,
+			cy = (B.ymax+B.ymin)/2;
+		var BB = {
+			xmin:cx-S.w/2,
+			xmax:cx+S.w/2,
+			ymin:cy-S.h/2,
+			ymax:cy+S.h/2,
+			width:S.w,
+			height:S.h
+		}
+		return BB;
+	}
+}
+function group_interpolation(config)
+{
+	var groups = config.groups;
+	var matches = config.matches;
+	var types = config.types;
+	var bound=
+	{
+		centerx:0.5, centery:0.5,
+		width:1, height:1
+	};
+	
+	current_group = $('container');
+	var drawer = viewer_box('box',800,800);
+	drawer.stroke_width = 1;
+	var collect = [];
+	var transfer_opt=
+	{
+		details:config.details,
+		smooths:config.smooths,
+		naive_style:false,
+		pretty_render:false
+	}
+	if( render==='curve')
+	{
+		var naive_corr = false;
+		for( var i=0; i<groups[0].length; i++)
+		{
+			collect[i] = [groups[0][i]];
+			for( var j=1; j<groups.length; j++)
+				if( naive_corr)
+					collect[i][j] = groups[j][i];
+				else
+					collect[i][j] = path_correspondence( null, bound, groups[j-1][i], groups[j][i] );
+		}
+	}
+	if( render==='stroke')
+	{
+		for( var j=0; j<groups.length; j++)
+		for( var i=0; i<groups[j].length; i++)
+		{
+			if( !collect[i]) collect[i] = [];
+			if( !types[i])
+			{
+				var transfer = transfer_stroke(null,i,stroke_library[matches[i]],groups[j][i],transfer_opt);
+				collect[i][j] = transfer;
+			}
+			else if( types[i]==='patch')
+			{
+				collect[i][j]=
+				{
+					type:'patch',
+					path:groups[j][i]
+				};
+			}
+		}
+	}
+	var calculate_fps = (function(){
+		var time;
+		var itr=0;
+		var fps=document.getElementById('fps');
+		return function (skip)
+		{
+			if( (itr++) % skip===0)
+			{
+				var ot=time;
+				time = new Date().getTime();
+				var diff = time-ot;
+				//ave = Math.round(ave*(total-1)/total + 1000/diff*skip/total);
+				fps.value = Math.round(1000/diff*skip)+'fps';
+			}
+		}
+	}());
+	dynamic_interpolation(drawer,bound,collect);
+	
+	function dynamic_interpolation(drawer,bound,collect)
+	{
+		var framerate = 60;
+		var time=0;
+		var frame=1;
+		var up=true;
+		var deform=[];
+		var timer = setInterval(function()
+		{
+			drawer.clear();
+			var steps = 10;
+			if( config.steps[frame])
+				steps *= config.steps[frame];
+			var t = time/steps;
+			if( render==='curve')
+			{
+				for( var k=0; k<collect.length; k++)
+				{
+					if( !collect[k]) continue;
+					var spa = collect[k][frame>0?frame-1:collect[0].length-1];
+					var spb = collect[k][frame];
+					var sp = path_interpolate(spa,spb,t);
+					subplotshape(drawer,bound,sp,{closepath:false});
+				}
+			}
+			if( render==='stroke')
+			{
+				for( var k=0; k<collect.length; k++)
+				{
+					var re = bound;
+					if( !deform[k]) deform[k] = [];
+					if( !deform[k][frame]) deform[k][frame] = [];
+					if( !deform[k][frame][time])
+					{
+						if( !collect[k][frame].type)
+						{
+							var lframe = frame>0?frame-1:collect[0].length-1;
+							var spa = collect[k][lframe].corr_path;
+							var spb = collect[k][frame].corr_path;
+							var sp = path_interpolate(spa,spb,t);
+							re.data = collect[k][frame].stroke;
+							var stroke_path = collect[k][frame].stroke_path;
+							var ske = collect[k][frame].ske;
+							var deformed_stroke = skeletal_deform(null,re,stroke_path,ske,sp);
+							deform[k][frame][time] = clone_array(deformed_stroke);
+						}
+						else if( collect[k][frame].type==='patch')
+						{
+							var spa = collect[k][lframe].path;
+							var spb = collect[k][frame].path;
+							var sp = path_interpolate(spa,spb,t);
+							deform[k][frame][time] = sp;
+						}
+					}
+					subplotshape(drawer,re,deform[k][frame][time],{style:'fill:0'});
+				}
+			}
+			//
+			if( time < steps)
+				time++;
+			else
+			{
+				time = 0;
+				if( frame<collect[0].length-1)
+					frame++;
+				else
+					frame=0;
+			}
+			calculate_fps(20);
+		},1000/framerate);
+	}
+	function path_interpolate(spa,spb,t)
+	{
+		var sp = [];
+		for( var j=0; j<spa.length; j++)
+		{
+			sp[j] = V.add(V.scale(spa[j],1-t),V.scale(spb[j],t));
+		}
+		return sp;
+	}
+}
+</script>
+</body>

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<body>
+<button id='export_btn'>export()</button>
+<script>
+$('export_btn').onclick=function()
+{
+	export_file(JSON.stringify({a:1,b:2,c:3}));
+}
+function export_file(text)
+{
+	window.open('data:,'+text);
+}
+function $(id)
+{
+	return document.getElementById(id);
+}
+</script>
+</body>

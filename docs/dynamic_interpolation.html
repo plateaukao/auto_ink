@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<head>
+<style>
+#container
+{
+	width:100%;
+}
+.box
+{
+	width: 400px;
+	height: 400px;
+	float: left;
+	margin: 5px;
+}
+</style>
+</head>
+<body>
+<object id='svg_file' data='test/curves1.svg' type='image/svg+xml'></object>
+<div id='container'></div>
+<script data-main='./' src='require.js'></script>
+<script>
+var current_group;
+requirejs(['raphael','drawer','shape','stroke','curve','structure','hungarian','util'], function(){
+	(function main()
+	{
+		var svg = $('svg_file').contentDocument;
+		var paths = svg.getElementsByTagName('path');
+		if( paths.length)
+		{
+			stroke_interpolation(paths[0],paths[1],paths[2]);
+			$('svg_file').style.display='none';
+		}
+		else
+			setTimeout(main,10);
+	}());
+});
+
+function stroke_interpolation(STR,PA,PB)
+{
+	var group = document.createElement('div');
+	group.className = 'group';
+	$('container').appendChild(group);
+	current_group = group;
+	var drawer = viewer_box('box');
+	var spa = sample_path(PA,40,true),
+		spb0 = sample_path(PB,40,true),
+		stroke = sample_path(STR,120,true),
+		bound = resize_paths([stroke,spa,spb0]);
+	
+	var spb = path_correspondence( null, bound, spa, spb0 );
+	var re=
+	{
+		data: stroke,
+		centerx:0.5, centery:0.5,
+		width:1, height:1
+	};
+	var ske = skeletonize(null,re,spa);
+	
+	if( 0)
+	{
+		//resize_component(stroke,spa,1.5);
+		var seg = [];
+		for( var i=0; i<spa.length; i++)
+		{
+			seg.push(spa[i]);
+			seg.push(spb[i]);
+		}
+		subplotshape(drawer,bound,seg,{style:'segment:3'}).attr({'stroke-width':0.4});
+	}
+	
+	dynamic_interpolation(drawer,re,ske,spa,spb);
+}
+function dynamic_interpolation(drawer,bound,ske,spa,spb)
+{
+	var steps = 30;
+	var i=0;
+	var up=true;
+	setInterval(function()
+	{
+		drawer.clear();
+		var t = i/steps;
+		var sp = [];
+		for( var j=0; j<spa.length; j++)
+		{
+			sp[j] = V.add(V.scale(spa[j],t),V.scale(spb[j],1-t));
+		}
+		var deform = skeletal_deform(drawer,bound,spa,ske,sp);
+		subplotshape(drawer,bound,deform).attr({fill:'#222',stroke:'none'});
+		//subplotshape(drawer,bound,sp,{closepath:false}).attr({'stroke-width':0.2});
+		if( up) {
+			if( i>=steps) {
+				up=false;
+				i--;
+			} else i++;
+		} else {
+			if( i<=0) {
+				up=true;
+				i++;
+			} else i--;
+		}
+	},1000/15);
+}
+</script>
+</body>

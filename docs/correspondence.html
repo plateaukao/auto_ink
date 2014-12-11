@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<head>
+<style>
+#container
+{
+	width:6000px;
+}
+.viewerbox
+{
+	width: 150px;
+	height: 1200px;
+}
+.group
+{
+	float: left;
+}
+</style>
+</head>
+<body>
+<object id='svg_file' data='test/curves.svg' type='image/svg+xml'></object>
+<div id='container'></div>
+<script data-main='./' src='require.js'></script>
+<script>
+var current, current_group;
+var dynamic_demo = false;
+requirejs(['raphael','drawer','shape','curve','structure','hungarian','util'], function(){
+	(function main()
+	{
+		var svg = $('svg_file').contentDocument;
+		var paths = svg.getElementsByTagName('path');
+		if( paths.length)
+		{
+			for( var i=0; i<paths.length; i+=2)
+			{
+				current = Math.floor(i/2);
+				two_correspondence(paths[i],paths[i+1]);
+			}
+			$('svg_file').style.display='none';
+		}
+		else
+			setTimeout(main,10);
+	}());
+});
+function two_correspondence(PA,PB)
+{
+	var group = document.createElement('div');
+	group.className = 'group';
+	$('container').appendChild(group);
+	current_group = group;
+	var drawer = viewer_box(null,150,150);
+	var spa = sample_path(PA,40,true),
+		spb = sample_path(PB,40,true),
+		bound = resize_paths([spa,spb]);
+	
+	if( !dynamic_demo)
+	{
+		var spb1 = path_correspondence( drawer, bound, spa, spb );
+		var spb2 = path_correspondence_naive( drawer, bound, spa, spb );
+		path_interpolation( drawer, bound, 'path interpolation', 3, spa, spb1);
+		path_interpolation( drawer, bound, 'naive path interpolation', 4, spa, spb2);
+		//path_interpolation_raphael( drawer, bound, 5, spa, spb);
+	}
+	else
+	{
+		resize_paths([spa]);
+		resize_paths([spb]);
+		drawer.stroke_width = 1;
+		var spb1 = path_correspondence( null, bound, spa, spb );
+		var spb2 = path_correspondence_naive( null, bound, spa, spb );
+		dynamic_interpolation([spb1,spb2]);
+	}
+	function dynamic_interpolation(spb)
+	{
+		var steps = 30;
+		var i=0;
+		var up=true;
+		setInterval(function()
+		{
+			drawer.clear();
+			var t = i/steps;
+			var sp = [];
+			for( var k=0; k<spb.length; k++)
+			{
+				for( var j=0; j<spa.length; j++)
+				{
+					sp[j] = V.add(V.scale(spa[j],t),V.scale(spb[k][j],1-t));
+				}
+				if( k===0)
+					var title = 'our method';
+				else
+					var title = 'naive method';
+				subplotshape(drawer,bound,sp,{num:k,closepath:false,title:title});
+			}
+			if( up) {
+				if( i>=steps) {
+					up=false;
+					i--;
+				} else i++;
+			} else {
+				if( i<=0) {
+					up=true;
+					i++;
+				} else i--;
+			}
+		},1000/30);
+	}
+}
+</script>

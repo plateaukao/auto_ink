@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<head>
+<style>
+#canvas
+{
+	width:800px;
+	height:600px;
+}
+</style>
+</head>
+<body>
+<div id='canvas'></div>
+<script data-main='./' src='require.js'></script>
+<script>
+var PI=Math.PI,
+	OA=[PI/4,PI*3/4, PI*1.2/4,PI*1.4/4,PI*1.6/4,PI*2/4,PI*2.5/4, 0,-PI/4,-PI/3,-PI/2,-PI],
+	NA=[PI/4,PI*3/4],
+	fan=[],
+	radius=100;
+requirejs(['raphael','drawer','dragger'], function(){
+	main();
+});
+function main()
+{
+	var drawer = new Drawer($('canvas'));
+	var dragger = new Dragger($('canvas'),fan,redraw,trans);
+	function redraw()
+	{
+		drawer.clear();
+		update();
+		draw_set(OA,200,300);
+		fan_stretch();
+		draw_set(NA,600,300);
+	}
+	function update()
+	{
+		var C={x:600,y:300};
+		for( var i=0; i<2; i++)
+		{
+			if( fan[i])
+				NA[i] = angle(C,fan[i]);
+			var V={x:Math.cos(NA[i])*radius,y:Math.sin(NA[i])*radius};
+			fan[i] = add(C,V);
+		}
+	}
+	function fan_stretch()
+	{
+		var C={x:600,y:300};
+		var aa = OA[0],
+			ab = OA[1],
+			ra = NA[0],
+			rb = NA[1];
+		var exg = square(acdiff(rb,ra)-acdiff(ab,aa))/10, //exaggeration
+			outer = (acdiff(rb,ra)>Math.PI)?1:-1;
+		if( acdiff(rb+2*exg*outer,ra)>Math.PI !== (outer===1))
+			exg = 0;
+		for( var i=2; i<OA.length; i++)
+		{
+			var ap = OA[i],
+				P = {x:Math.cos(OA[i])*radius,y:Math.sin(OA[i])*radius};
+			if( acdiff(ap,aa)<acdiff(ab,aa))
+			{	//from a to b, anti clockwise
+				var at = acdiff(ap,aa)/acdiff(ab,aa),
+					rt = at,
+					rp = (ra-exg*outer)+acdiff(rb+2*exg*outer,ra)*rt;
+				NA[i] = rp;
+			}
+			else
+			{	//from b to a, anti clockwise
+				var at = acdiff(ap,ab)/acdiff(aa,ab),
+					rt = at,
+					rp = (rb-exg*-outer)+acdiff(ra+2*exg*-outer,rb)*rt;
+				NA[i] = rp;
+			}
+		}
+		function square(s)
+		{
+			return s*s;
+		}
+	}
+	function draw_set(AA,cx,cy)
+	{
+		var colors=['red','green','blue','orange','purple'];
+		var C={x:cx,y:cy};
+		drawer.rl.circle(C.x,C.y,radius);
+		for( var i=0; i<AA.length; i++)
+		{
+			var el = draw_slit(C,AA[i]);
+			if( i<2)
+				el.attr( {stroke:'#000', 'stroke-width': 2.5});
+			else
+				el.attr( {stroke:colors[i%colors.length], 'stroke-width': 1});
+		}
+	}
+	function draw_slit(C,A)
+	{
+		var V={x:Math.cos(A)*radius,y:Math.sin(A)*radius};
+		drawer.moveTo(trans(C),0);
+		drawer.lineTo(trans(add(C,V)),0);
+		var el=drawer.draw();
+		return el;
+	}
+	function trans(P)
+	{
+		return {x:P.x,y:600-P.y};
+	}
+	function add(A,B) //A+B
+	{
+		return {x:A.x+B.x, y:A.y+B.y};
+	}
+	function sub(A,B) //A-B
+	{
+		return {x:A.x-B.x, y:A.y-B.y};
+	}
+	function agdiff(a,b)
+	{
+		var dy=a-b;
+		if( dy>Math.PI) dy = dy-2*Math.PI; //circular range
+		else if( dy<-Math.PI) dy = 2*Math.PI+dy;
+		return dy;
+	}
+	function acdiff(a,b) //anti clockwise
+	{
+		var dy = agdiff(a,b);
+		if( dy<0)
+			dy = 2*Math.PI+dy;
+		return dy;
+	}
+	function angle(A,B)
+	{
+		var vx=B.x-A.x, vy=B.y-A.y;
+		var L = Math.sqrt(vx*vx+vy*vy);
+		vx/=L; //normalize
+		var ag = Math.acos(vx);
+		if( vy<0) ag = -ag; //-pi~pi angle
+		return ag;
+	}
+	function rotate_to(A,ag)
+	{
+		var L = length(A),
+			B = {x:Math.cos(ag)*L, y:Math.sin(ag)*L};
+		return B;
+	}
+	function length(A)
+	{
+		return Math.sqrt(A.x*A.x+A.y*A.y);
+	}
+}
+function $(id)
+{
+	return document.getElementById(id);
+}
+</script>
+</body>

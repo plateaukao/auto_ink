@@ -1,0 +1,38 @@
+<body>
+<script src='hungarian.js'></script>
+<script>
+hungarian([
+	[  3, 1, 3],
+	[  2, 2, 2],
+	[  1, 3, 1],
+	[  1, 2, 1]]);
+console.log('');
+hungarian([
+	[  3, 1, 3],
+	[  2, 2, 2],
+	[  1, 3, 1],
+	[  1, 2, 1]],true);
+console.log('');
+hungarian([
+	[1, 2, 3, 4],
+	[2, 4, 6, 8],
+	[3, 6, 9,12],
+	[4, 8,12,16]]);
+
+function test_optimal_assignment(A,B)
+{
+	console.log('A: '+A+', '+'B: '+B);
+	var pairs = optimal_assignment(A,B,function(x,y){return Math.abs(x-y);});
+	var str = '';
+	for( var i=0; i<pairs.length; i++)
+		str+= A[pairs[i][0]]+'->'+B[pairs[i][1]]+', ';
+	console.log(str);
+}
+test_optimal_assignment([1,6,9],[4,8]);
+console.log('');
+test_optimal_assignment([1,6,12],[4,8]);
+console.log('');
+test_optimal_assignment([1,6,12],[5]);
+
+</script>
+</body>

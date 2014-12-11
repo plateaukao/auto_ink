@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<head>
+<style>
+#container
+{
+	/*width:30000px;*/
+	width:100%;
+}
+.viewerbox
+{
+	width: 110px;
+	height: 110px;
+}
+.viewerboxbig
+{
+	width: 810px;
+	height: 810px;
+}
+.viewercolumn
+{
+	width: 110px;
+	height: 450px;
+}
+.group
+{
+	float: left;
+}
+</style>
+</head>
+<body>
+<button id='export_btn'>export()</button><input id='status'/>
+<object id='chin_cali' data='test/input1.svg' type='image/svg+xml'></object>
+<object id='present' data='test/input3.svg' type='image/svg+xml'></object>
+<object id='cartoon' data='test2/trace1.svg' type='image/svg+xml'></object>
+<div id='container'></div>
+<script data-main='./' src='require.js'></script>
+<script>
+function location_parameters()
+{
+	var param = window.location.href.split('/').pop(),
+		query = {};
+	if( param.indexOf('?')!==-1)
+	{
+		var param = param.split('?').pop().split('&');
+		for( var i=0; i<param.length; i++)
+		{
+			pp = param[i].split('=');
+			if( pp.length===1)
+				query[pp[0]] = 1;
+			if( pp.length===2)
+				query[pp[0]] = pp[1];
+		}
+	}
+	return query;
+}
+
+var current_group,
+	mode = location_parameters().mode || 'chin_cali',
+	library_file = 'library/',
+	structural_scheme,
+	cartoon_scheme,
+	principal_axis_no_verify = true,
+	similarity_weight;
+	
+	switch (mode)
+	{
+		case 'present':
+			structural_scheme = 'demo'; //'final'
+			library_file += 'library';
+			similarity_weight = [    2   ,   8   ,   10  ,    30    ,   30   ];
+		break;
+		case 'chin_cali':
+			structural_scheme = 'demo'; //'final'
+			library_file += 'library';
+			//					[comp_err,int_err,dot_err,aspect_err,size_err]
+			similarity_weight = [    2   ,   8   ,   10  ,    30    ,   30   ];
+		break;
+		case 'cartoon':
+			cartoon_scheme = true;
+			library_file += 'library1';
+			similarity_weight = [    1   ,   4   ,   5   ,    30    ,  500   ];
+		break;
+		case 'cartoon_basic':
+			cartoon_scheme = true;
+			library_file += 'basic taper';
+			mode = 'cartoon';
+		break;
+		case 'test2':
+			structural_scheme = 'demo';
+			library_file += 'sky';
+			similarity_weight = [    2   ,   8   ,   10  ,    30    ,   30   ];
+		break;
+	}
+
+/* stages
+0. prepare
+1. library matching
+2. stroke transfer
+*/
+requirejs([library_file,'raphael','drawer','matching','structure','shape','stroke','curve','hungarian','util'], function(library){
+	
+	var unit_square,
+		process_to_stage,
+		details,
+		smooths;
+	
+	var param = location_parameters();
+	process_to_stage = parseInt(param.stage) || 2;
+	
+	(function main()
+	{
+		var svg = $(mode).contentDocument,
+			layer = svg.getElementById('layer1');
+		if( layer)
+		{
+			var start_time = new Date();
+			var square = svg.getElementById('unit_square');
+			if( square)
+			unit_square = {
+				w: parseInt(square.getAttribute('width')),
+				h: parseInt(square.getAttribute('height'))
+			};
+			var groups = layer.getElementsByTagName('g');
+			for( var i=0; i<groups.length; i++)
+			{
+				process_group(groups[i]);
+			}
+			$('cartoon').style.display='none';
+			$('chin_cali').style.display='none';
+			$('present').style.display='none';
+			var spent_time = new Date().getTime() - start_time.getTime();
+			$('status').value = 'spent '+(spent_time/1000)+'s';
+			$('export_btn').onclick=function()
+			{
+				var str = '';
+				var els = document.getElementsByClassName('viewerbox');
+				str += '<svg version="1.1" height="'+(Math.ceil(els.length/10)*100)+'" width="'+(els.length*100)+'" xmlns="http://www.w3.org/2000/svg">';
+				for( var i=0; i<els.length; i++)
+					str += '<g transform="translate('+(i%10*100)+','+(Math.floor(i/10)*100)+')">'
+						+  els[i].firstChild.innerHTML
+						+ '</g>';
+				str += '</svg>';
+				export_file(str);
+			}
+			setTimeout(function(){
+				//document.location.reload();
+			},2000);
+		}
+		else
+			setTimeout(main,10);
+	}());
+	
+	function process_group(group)
+	{
+		var paths = group.getElementsByTagName('path'),
+			matches = fn(function(e){return parseFloat(e.getAttribute('match'))},paths);
+		details = fn(function(e){return parseFloat(e.getAttribute('detail'))},paths);
+		smooths = fn(function(e){return parseFloat(e.getAttribute('smooth'))},paths);
+		paths = fn(sample_path,paths,40,true);
+		if( unit_square)
+			resize_paths(paths,fit_bound(paths,unit_square));
+		else
+			resize_paths(paths);
+		
+		library_matching({
+			library:library,
+			paths:paths,
+			matches:matches,
+			details:details,
+			smooths:smooths,
+			mode:mode,
+			process_to_stage:process_to_stage,
+			pretty_render:true,
+			similarity_weight:similarity_weight
+		});
+		
+		function fit_bound(strokes,S)
+		{
+			var B = get_paths_bound(strokes);
+			var cx = (B.xmax+B.xmin)/2,
+				cy = (B.ymax+B.ymin)/2;
+			var BB = {
+				xmin:cx-S.w/2,
+				xmax:cx+S.w/2,
+				ymin:cy-S.h/2,
+				ymax:cy+S.h/2,
+				width:S.w,
+				height:S.h
+			}
+			return BB;
+		}
+	}
+});
+</script>
+</body>

@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<head>
+<style>
+#container
+{
+	width:6000px;
+}
+.viewer
+{
+	width: 110px;
+	height: 400px;
+}
+.group
+{
+	float: left;
+}
+</style>
+</head>
+<body>
+<object id='svg_shapes' data='test/shapes.svg' type='image/svg+xml'></object>
+<div id='container'></div>
+<script data-main='./' src='require.js'></script>
+<script>
+var current;
+requirejs(['raphael','drawer','stroke'], function(){
+	(function main()
+	{
+		var svg = $('svg_shapes').contentDocument;
+		var paths = svg.getElementsByTagName('path');
+		if( paths.length)
+		{
+			for( var i=0; i<paths.length; i++)
+			{
+				current=i;
+				process_shape(paths[i]);
+			}
+			$('svg_shapes').style.display='none';
+		}
+		else
+			setTimeout(main,10);
+	}());
+});
+function process_shape(path)
+{
+	var group = document.createElement('div');
+	group.className = 'group';
+	$('container').appendChild(group);
+
+	//display original shape
+	var d = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+	d.setAttribute('width','100');
+	d.setAttribute('height','100');
+	d.setAttribute('version','1.1');
+	path = path.cloneNode();
+	d.appendChild(path);
+	group.appendChild(d);
+	var box = d.getBBox(), boxpadding = 5;
+	d.setAttribute('viewBox', [box.x-boxpadding,box.y-boxpadding,box.width+2*boxpadding,box.height+2*boxpadding].join(' '));
+
+	//sample points on path
+	var steps = 120;
+	var step = path.getTotalLength()/steps;
+	var shape = []; //array of points format
+	for( var i=0; i<steps; i++)
+	{
+		var p = path.getPointAtLength(i*step);
+		p = {x:p.x,y:p.y};
+		shape[i] = p;
+	}
+	//shape = circular_shift(shape,40);
+
+	//transform
+	var st = transform(shape);
+
+	//plot graphs
+	var div = document.createElement('div');
+	div.className = 'viewer';
+	group.appendChild(div);
+	var drawer = new Drawer(div);
+
+	subplot({
+		drawer:drawer, data:st,
+		x:'l', y:'q',
+		xrange:1, yrange:2*Math.PI,
+		width:100, height:100,
+		num:0, title:'angle-distance'
+	});
+	subplot({
+		drawer:drawer, data:differentiate(st,'q','l'),
+		x:'x', y:'dydx',
+		xrange:1, yrange:2*Math.PI, yoffset:Math.PI,
+		width:100, height:100,
+		num:1, title:'diff-angle-distance'
+	});
+	subplot({
+		drawer:drawer, data:st,
+		x:'l', y:'d',
+		xrange:1, yrange:1,
+		width:100, height:100,
+		num:2, title:'displacement-distance'
+	});
+}
+function subplot(graph)
+{
+	var data = graph.data,
+		x = graph.x,
+		y = graph.y,
+		xoff = graph.xoffset || 0,
+		yoff = graph.yoffset || 0;
+
+	if( !graph.style || graph.style.indexOf('line')===0) //default style
+	{
+		var color = (graph.style && graph.style.split(':').length>=2)?graph.style.split(':')[1]:0; //default black
+		if( data.length>0)
+			graph.drawer.moveTo( trans(data[0][x],data[0][y]), color);
+		for( var i=0; i<data.length; i++)
+		{
+			graph.drawer.lineTo( trans(data[i][x],data[i][y]), color);
+		}
+		if( graph.closepath)
+			graph.drawer.lineTo( trans(data[0][x],data[0][y]), color);
+	}
+	else if( graph.style.indexOf('point')===0)
+	{
+		var color = (graph.style.split(':').length>=2)?graph.style.split(':')[1]:1; //default red
+		for( var i=0; i<data.length; i++)
+		{
+			graph.drawer.point( trans(data[i][x],data[i][y]), 1.2, color);
+		}
+	}
+	if( graph.title)
+	{
+		graph.drawer.rl.text(graph.width/2, (graph.num)*(graph.height+10)+graph.height+5, graph.title).attr({'font-size':'4px'});
+		graph.drawer.rl.rect(0,graph.num*(graph.height+10),graph.width,graph.height).attr({'stroke':'#CCC'});
+	}
+	graph.drawer.draw();
+	function trans(x,y)
+	{
+		return { x:(x+xoff)/graph.xrange*graph.width, y:graph.height-(y+yoff)/graph.yrange*graph.height+graph.num*(graph.height+10)};
+	}
+}
+function transform(ss)
+{
+	var st = [];
+	var pathlength=0;
+	var initangle, initx=ss[0].x, inity=ss[0].y;
+	var maxdp = 0;
+	for( var i=0; i<ss.length; i++)
+	{
+		var vx,vy;
+		if( i<ss.length-1)
+		{
+			vx = ss[i+1].x-ss[i].x; vy = ss[i+1].y-ss[i].y;
+		}
+		else
+		{	//circular domain
+			vx = ss[0].x-ss[i].x; vy = ss[0].y-ss[i].y;
+		}
+		var L = Math.sqrt(vx*vx+vy*vy);
+		vx/=L; //normalize
+		//angle
+		var ag = Math.acos(vx);
+		if( vy>0)
+			ag = -ag;
+		if( i===0)
+			initangle = ag;
+		var ag = ag-initangle;
+		if( ag<-0.0001) ag += 2*Math.PI; //make range 0 ~ 2pi
+		//if( ag<-Math.PI) ag += 2*Math.PI; //make range -pi ~ 2pi
+		if( i>0 && Math.abs(ag-st[i-1].q)>Math.PI) //force continunity with previous point
+			ag += 2*Math.PI*(ag-st[i-1].q>0?-1:1);
+		//displacement
+		var dp;
+		if( i===0)
+			dp = 0;
+		else
+			dp = Math.sqrt((ss[i].x-initx)*(ss[i].x-initx)+(ss[i].y-inity)*(ss[i].y-inity));
+		if( dp>maxdp) maxdp = dp;
+		//push
+		st[i] = {l:pathlength, q:ag, d:dp};
+		pathlength+=L;
+	}
+	for( var i=0; i<st.length; i++)
+	{
+		st[i].l/=pathlength; //normalize to range 0~1
+		st[i].d/=maxdp; //normalize to range 0~1
+	}
+	return st;
+}
+function differentiate(data,y,x) //delta y over x
+{
+	var out = [{dydx:0,x:0}];
+	for( var i=1; i<data.length+1; i++)
+	{
+		var dy,dx;
+		if( i===data.length-1)
+			var t=2;
+		if( i<data.length)
+		{
+			dy = data[i][y]-data[i-1][y];
+			dx = data[i][x]-data[i-1][x];
+		}
+		else
+		{
+			dy = data[0][y]-data[i-1][y]; //circular domain
+			dx = data[i-1][x]-data[i-2][x];
+		}
+		var dydx = value(dy,dx);
+		if( i<data.length)
+			out[i] = {
+				dydx: dydx,
+				x: data[i][x]
+			};
+		else
+			out[i] = {
+				dydx: dydx,
+				x: data[i-1][x]+data[i-1][x]-data[i-2][x]
+			};
+	}
+	function value(dy,dx)
+	{
+		if( dy>Math.PI) dy = dy-2*Math.PI; //circular range
+		else if( dy<-Math.PI) dy = 2*Math.PI+dy;
+		var dydx = dy/dx/20;
+		if( dydx>Math.PI) dydx = Math.PI; //impulse trim off
+		else if( dydx<-Math.PI) dydx = -Math.PI;
+		return dydx;
+	}
+	out.shift();
+	return out;
+}
+function circular_shift(A,x)
+{
+	return A.slice(x).concat(A.slice(0,x));
+}
+function $(id)
+{
+	return document.getElementById(id);
+}
+</script>
+</body>

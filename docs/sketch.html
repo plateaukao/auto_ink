@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<head>
+<style>
+body
+{
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+}
+#outer
+{
+    background: #fff;
+    position: fixed;
+    width:100%;
+    height:100%;
+}
+#toolbar
+{
+	padding-bottom:10px;
+}
+#toolbar > *
+{
+	height:25px;
+	font-size:15px;
+	padding:0px;
+	margin:0px;
+}
+#mainarea
+{
+    overflow-y: scroll;
+    height: 100%;
+}
+.group
+{
+	clear: both;
+}
+.viewerbox
+{
+	width: 500px;
+	height: 500px;
+	border: 1px solid #EEE;
+	float: left;
+}
+#padding
+{
+	clear: both;
+	height: 100px;
+}
+</style>
+</head>
+<body>
+<div id='outer'>
+	<div id='toolbar'></div>
+	<div id='mainarea'>
+		<div id='container'></div>
+		<div id='padding'></div>
+	</div>
+</div>
+
+<script data-main='./' src='require.js'></script>
+<script>
+var tooltarget;
+var current_group,
+	mode = 'chin_cali',
+	structural_scheme='demo',
+	principal_axis_no_verify=true;
+
+requirejs(['library/library','library/library1','library/basic taper','raphael','drawer','sketcher','matching','structure','shape','stroke','curve','hungarian','shortcut','util'],
+function(library,cartoon_library,basic_library){
+
+	var param = location_parameters();
+	if( param.cartoon)
+	{
+		mode = 'cartoon';
+		library = cartoon_library;
+	}
+
+	create_toolbar($('toolbar'));
+	stylistic_controls();
+	create_button('add box',add_panel);
+	create_button('export drawings',export_drawings);
+	
+	for( var i=0; i<(mode=='chin_cali'?2:1); i++)
+	{
+		add_panel();
+	}
+	
+	function add_panel()
+	{
+		viewer_group();
+		function update(curves)
+		{
+			process_curves(drawer,curves);
+		}
+		new sketcher(update);
+		var drawer = viewer_box();
+	}
+	
+	function stylistic_controls()
+	{
+		var tk = document.createElement('input');
+		tk.type = 'range';
+		tk.min = 0.2;
+		tk.max = 1.0;
+		tk.step = 0.05;
+		tk.value = 0.75;
+		tk.id = 'thickness';
+		tk.onchange = update;
+		$('toolbar').appendChild(tk);
+		
+		checker('solid','solid_render');
+		checker('style','style');
+		
+		function checker(label_text,id)
+		{
+			var label = document.createElement('label');
+			label.innerHTML = label_text;
+			var sd = document.createElement('input');
+			sd.type = 'checkbox';
+			sd.checked = true;
+			sd.id = id;
+			sd.onchange = update;
+			label.appendChild(sd);
+			$('toolbar').appendChild(label);
+		}
+		
+		function update()
+		{
+			if( tooltarget && tooltarget.idle())
+				tooltarget.update();
+		}
+	}
+	
+	function create_button(label,fun)
+	{
+		var add_button = document.createElement('button');
+		add_button.innerHTML = label;
+		add_button.onclick = fun;
+		$('toolbar').appendChild(add_button);
+	}
+	
+	function export_drawings()
+	{
+		var W = 450;
+		var str = '';
+		var els = document.getElementsByClassName('viewerbox');
+		str += '<svg version="1.1" height="'+(Math.ceil(els.length/10)*W)+'" width="'+(els.length*W)+'" xmlns="http://www.w3.org/2000/svg">';
+		for( var i=0; i<els.length; i++)
+			str += '<g transform="translate('+(i%10*W)+','+(Math.floor(i/10)*W)+')">'
+				+  els[i].firstChild.innerHTML
+				+ '</g>';
+		str += '</svg>';
+		export_file(str);
+	}
+	
+	function process_curves(drawer,paths)
+	{
+		drawer.clear();
+		
+		library_matching({
+			paths:paths,
+			mode:mode,
+			process_to_stage:2,
+			similarity_weight:[2,8,10,30,30],
+			drawer:[drawer],
+			thickness:$('thickness').value,
+			pretty_render:$('solid_render').checked,
+			library:$('style').checked?library:basic_library
+		});
+	}
+});
+</script>
+</body>

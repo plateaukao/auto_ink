@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<head>
+<style>
+#container
+{
+	width:6000px;
+}
+.viewerbox
+{
+	width: 110px;
+	height: 110px;
+}
+.group
+{
+	float: left;
+}
+</style>
+</head>
+<body>
+<object id='svg_file' data='test/shapes.svg' type='image/svg+xml'></object>
+<div id='container'></div>
+<script data-main='./' src='require.js'></script>
+<script>
+var current_group;
+requirejs(['raphael','drawer','shape','curve','util'], function(){
+	(function main()
+	{
+		var svg = $('svg_file').contentDocument;
+		var paths = svg.getElementsByTagName('path');
+		if( paths.length)
+		{
+			for( var i=0; i<paths.length; i++)
+			{
+				our_process_path(paths[i]);
+			}
+			$('svg_file').style.display='none';
+		}
+		else
+			setTimeout(main,10);
+	}());
+});
+function our_process_path(path)
+{
+	var group = document.createElement('div');
+	group.className = 'group';
+	$('container').appendChild(group);
+	current_group = group;
+	
+	var div = document.createElement('div');
+	div.className = 'viewerbox';
+	current_group.appendChild(div);
+	var drawer = new Drawer(div);
+	var show_points = false;
+	
+	var sppp = sample_path(path,100,true),
+		st = transform(sppp),
+		dst = differentiate(st,'q','l'),
+		re = reconstruct(st),
+		sp = re.data;
+	
+	subplotshape(drawer,re,re.data,{style:'line:0',title:'original'});
+	
+	var drawer = viewer_box();
+	var lower = num_lower_sample(sp,st,dst,40);
+	if( show_points) subplotshape(drawer,re,lower,{style:'point:3'});
+	subplotshape(drawer,re,lower,{style:'line:0',title:'definite points lower sampling ('+lower.length+'points)'});
+	
+	var drawer = viewer_box();
+	var lower = ag_lower_sample(sp,st,dst,Math.PI*0.05);
+	if( show_points) subplotshape(drawer,re,lower,{style:'point:3'});
+	subplotshape(drawer,re,lower,{style:'line:0',title:'constant angle error ('+lower.length+'points)'});var drawer = viewer_box();
+	
+	var lower = agdist_lower_sample(sp,st,dst,0.3);
+	if( show_points) subplotshape(drawer,re,lower,{style:'point:3'});
+	subplotshape(drawer,re,lower,{style:'line:0',title:'constant angle+distance error  ('+lower.length+'points)'});
+}
+</script>

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<head>
+<style>
+#container1
+{
+	width:10000px;
+}
+#container2
+{
+	width:100%;
+}
+.viewer
+{
+	width: 110px;
+	height: 350px;
+}
+.viewerbox
+{
+	width: 110px;
+	height: 350px;
+}
+.group
+{
+	float: left;
+}
+.box
+{
+	width: 200px;
+	height: 200px;
+	float: left;
+	margin: 5px;
+}
+</style>
+</head>
+<body>
+<!-- hollow_shapes chinese_calligraphy0 test2/whole shape.svg-->
+<input id='status'/>
+<object id='svg_shapes' data='test/scan3.svg' type='image/svg+xml'></object>
+<div id='container1'></div>
+<div id='container2'></div>
+<script data-main='./' src='require.js'></script>
+<script>
+var current_group;
+var strokes = [];
+var computation_to_stage = 2;
+var sampling_density = 120; //standard: 120, still okay: 165
+var hollow_scheme = true;
+var structural_scheme = true;
+var principal_axis_no_verify = true;
+//var more_tolerant = true;
+
+/** Stages:
+1: decompose
+2: principal axis
+3: skeletonization
+4: skeletal deformation
+*/
+requirejs(['raphael','drawer','dragger','shape','decompose','stroke','curve','util'], function(){
+	(function main()
+	{
+		var svg = $('svg_shapes').contentDocument;
+		var paths = svg.getElementsByTagName('path');
+		if( paths.length)
+		{
+			var start_time = new Date();
+			if( 1 <= computation_to_stage)
+			{
+				for( var i=0; i<paths.length; i++)
+				{
+					decompose_path(paths[i]);
+				}
+				$('svg_shapes').style.display='none';
+			}
+			if( 4 <= computation_to_stage)
+			{
+				$('container1').style.display='none';
+				for( var i=0; i<strokes.length; i++)
+				{
+					stroke_deformation(strokes[i]);
+				}
+			}
+			var spent_time = new Date().getTime() - start_time.getTime();
+			$('status').value = 'spent '+(spent_time/1000)+'s';
+		}
+		else
+			setTimeout(main,10); //wait until the svg DOM is ready
+	}());
+});
+</script>
+</body>
