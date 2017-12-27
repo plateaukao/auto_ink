@@ -37,12 +37,11 @@ Figure 2. Input (left), naive stylization (middle), our stylization result (righ
 ### Some HTML demo you may find interesting
 
 #### Chinese Calligraphy
-[stroke deform](https://tyt2y3.github.io/auto_ink/stroke_deform.html)<br>
+[Interactive Chinese calligraphy](https://tyt2y3.github.io/auto_ink/sketch.html)<br>
 [stroke library of Chinese calligraphy](https://tyt2y3.github.io/auto_ink/library%20of%20chin%20cali%202.html)<br>
 [stylization of Chinese characters](https://tyt2y3.github.io/auto_ink/library_matching.html)<br>
 [stage 1 of stylization](https://tyt2y3.github.io/auto_ink/library_matching.html?mode=present&stage=1)<br>
 [stage 2 of stylization](https://tyt2y3.github.io/auto_ink/library_matching.html?mode=present&stage=2)<br>
-[Chinese calligraphy pad](https://tyt2y3.github.io/auto_ink/sketch.html)<br>
 
 #### Cartoon illustration
 [stroke library of cartoon](https://tyt2y3.github.io/auto_ink/library%20of%20cartoon.html)<br>
@@ -50,6 +49,7 @@ Figure 2. Input (left), naive stylization (middle), our stylization result (righ
 [animation showing dynamic stroke interpolation](https://tyt2y3.github.io/auto_ink/animation.html)<br>
 
 #### Shape
+[stroke deform](https://tyt2y3.github.io/auto_ink/stroke_deform.html)<br>
 [shape decomposition](https://tyt2y3.github.io/auto_ink/shape_processing.html)<br>
 
 ### Technical details
