@@ -2,9 +2,9 @@
 
 ## Shape Processing and its Application to Stroke Rendering and Stylization
 
-![](images/cover.png)
-![](images/system diagram.png)
-![](images/cartoon stylization.png)
+<img src="images/cover.png" width="600">
+<img src="images/system diagram.png" width="400">
+<img src="images/cartoon stylization.png" width="600">
 
 This is a brain dump of my final year project (commonly known as FYP) at HKUST. Basically, it is a system that allows you to input plain curves and turn it into stroked plausible inkings. The intended application including Chinese calligraphic font generation and animated cartoon.
 
