@@ -16,27 +16,21 @@ This is a brain dump of my final year project (commonly known as FYP) at HKUST. 
 
 ### Some HTML demo you may find interesting
 
-[stroke deform](https://tyt2y3.github.io/auto_ink/stroke_deform.html)
+#### Chinese Calligraphy
+[stroke deform](https://tyt2y3.github.io/auto_ink/stroke_deform.html)<br>
+[stroke library of Chinese calligraphy](https://tyt2y3.github.io/auto_ink/library%20of%20chin%20cali%202.html)<br>
+[stylization of Chinese characters](https://tyt2y3.github.io/auto_ink/library_matching.html)<br>
+[stage 1 of stylization](https://tyt2y3.github.io/auto_ink/library_matching.html?mode=present&stage=1)<br>
+[stage 2 of stylization](https://tyt2y3.github.io/auto_ink/library_matching.html?mode=present&stage=2)<br>
+[Chinese calligraphy pad](https://tyt2y3.github.io/auto_ink/sketch.html)<br>
 
-[stroke library of Chinese calligraphy](https://tyt2y3.github.io/auto_ink/library%20of%20chin%20cali%202.html)
+#### Cartoon illustration
+[stroke library of cartoon](https://tyt2y3.github.io/auto_ink/library%20of%20cartoon.html)<br>
+[stylization of cartoon](https://tyt2y3.github.io/auto_ink/library_matching.html?mode=cartoon)<br>
+[animation showing dynamic stroke interpolation](https://tyt2y3.github.io/auto_ink/animation.html)<br>
 
-[stylization of Chinese characters](https://tyt2y3.github.io/auto_ink/library_matching.html)
-
-[stage 1 of stylization](https://tyt2y3.github.io/auto_ink/library_matching.html?mode=present&stage=1)
-
-[stage 2 of stylization](https://tyt2y3.github.io/auto_ink/library_matching.html?mode=present&stage=2)
-
-[Chinese calligraphy pad](https://tyt2y3.github.io/auto_ink/sketch.html)
-<br>
-<br>
-[stroke library of cartoon](https://tyt2y3.github.io/auto_ink/library%20of%20cartoon.html)
-
-[stylization of cartoon](https://tyt2y3.github.io/auto_ink/library_matching.html?mode=cartoon)
-
-[animation showing dynamic stroke interpolation](https://tyt2y3.github.io/auto_ink/animation.html)
-<br>
-<br>
-[shape decomposition](https://tyt2y3.github.io/auto_ink/shape_processing.html)
+#### Shape
+[shape decomposition](https://tyt2y3.github.io/auto_ink/shape_processing.html)<br>
 
 ### Technical details
 [abstract](promotion%20booklet.pdf)
