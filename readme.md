@@ -1,10 +1,9 @@
 # An Automated Inking System
+Shape Processing and its Application to Stroke Rendering and Stylization
 
-## Shape Processing and its Application to Stroke Rendering and Stylization
-
-<img src="images/cover.png" width="600">
+<img src="images/cover.png" width="800">
 <img src="images/system diagram.png" width="400">
-<img src="images/cartoon stylization.png" width="600">
+<img src="images/cartoon stylization.png" width="800">
 
 This is a brain dump of my final year project (commonly known as FYP) at HKUST. Basically, it is a system that allows you to input plain curves and turn it into stroked plausible inkings. The intended application including Chinese calligraphic font generation and animated cartoon.
 
@@ -33,8 +32,8 @@ This is a brain dump of my final year project (commonly known as FYP) at HKUST. 
 [shape decomposition](https://tyt2y3.github.io/auto_ink/shape_processing.html)<br>
 
 ### Technical details
-[abstract](promotion%20booklet.pdf)
-[slides](FYP%20presentation.pdf)
-[full report](hftsangab_PSAN2_Final.pdf)
+- [abstract](promotion%20booklet.pdf)
+- [slides](FYP%20presentation.pdf)
+- [full report](hftsangab_PSAN2_Final.pdf)
 
 DISCLAIMER: this repository is all rights reserved, and is merely a "brain dump". You can only use it for academic research purpose. Albeit, the programs provided here are purely for demonstration purpose, and is so poorly implemented that it probably cannot handle practical inputs.
