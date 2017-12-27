@@ -1,11 +1,32 @@
 # An Automated Inking System
 Shape Processing and its Application to Stroke Rendering and Stylization
 
+This is a brain dump of my final year project (commonly known as FYP) at HKUST. Basically, it is a system that allows you to input plain curves and turn it into stroked plausible inkings. The intended application including Chinese calligraphic font generation and animated cartoon.
+
 <img src="images/cover.png" width="800">
 <img src="images/system diagram.png" width="400">
-<img src="images/cartoon stylization.png" width="800">
+Figure 1. Visual summary of the automated inking system
 
-This is a brain dump of my final year project (commonly known as FYP) at HKUST. Basically, it is a system that allows you to input plain curves and turn it into stroked plausible inkings. The intended application including Chinese calligraphic font generation and animated cartoon.
+Stage A (offline). Library construction
+
+1. Input images of stroke samples
+2. Perform thresholding, edge extraction and vectorization
+3. Decompose the shapes into individual strokes
+4. Thinning: compute the central axis
+5. Compute the skeletal representation
+6. Perform component analysis
+7. Build a library of component strokes 
+
+Stage B (online). Matching and stylization
+1. Input digitized unstroked curves
+2. Perform component analysis
+3. Search for the best match in the library
+4. Compute correspondence between input curves and sample curves
+5. Compute the skeletal stroke deformation
+6. Output the stroked set
+
+<img src="images/cartoon stylization.png" width="800">
+Figure 2. Input (left), naive stylization (middle), our stylization result (right). The solid eyes were added afterwards for aesthetic purpose. It was originally a frame extracted from the animation Toy Tinkers, 1949 by Walt Disney Productions. Reproduced without permission.
 
 ### Automated dynamic inking for animation
 <img src="images/dale_walking.gif" width="400" />
